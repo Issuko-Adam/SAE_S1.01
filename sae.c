@@ -2,13 +2,13 @@
 #include <string.h>
 
 enum  {INPUTMAX = 100, NOM_MAX = 30, MAXENTREPRISES = 50, MISSIONMAX = 50}; 
-enum {OP = 1, AG, IN};
+typedef enum {OP = 1, AG, IN} traitance;
 
 // structure d'une entreprise qui va contenir un nom de taille NOM_MAX (30), et un role (OP, AG, IN)
 typedef struct s_entreprise
 {
     char nom[NOM_MAX];
-    int role;
+    traitance role;
 } t_entreprise;
 
 //structure d'une mission qui va contenir un identifiant saisi par l'utilisateur, un nom pour la mission, et sa remuneration
@@ -19,12 +19,8 @@ typedef struct s_mission
     float remuneration;    
 } t_mission;
 
-//Enfin, les deux tableaux pour stocker ces derniers.
-t_entreprise entreprises[MAXENTREPRISES];
-t_mission missions[MISSIONMAX];
-
-// C1 - Première fonction pour l'inscription d'une entreprise dans le tableau. Elle prend en fonction le pointeur vers le compteur d'entreprise 
-void inscription(int *nbrentreprises){
+// C1 - Première fonction pour l'inscription d'une entreprise dans le tableau. Elle prend en fonction le pointeur vers le compteur d'entreprise et le tableau ou les entreprises sont stockés.
+void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     char entree[INPUTMAX];
     scanf("%s", entree);
     if (strcmp("OP", entree) == 0)
@@ -58,26 +54,35 @@ void inscription(int *nbrentreprises){
     printf("Inscription realisee (%d)\n", *nbrentreprises);
 }
 
-// C2 - Cette fois ci la seconde fonction pour publier une mission, tout comme la première elle prend en pointeur le compteur de publication de missions.
-void publication(int *nbrmissions){
+// C2 - Cette fois ci la seconde fonction pour publier une mission, tout comme la première elle prend en pointeur le compteur de publication de missions et le tableau ou les missions sont stockés.
+void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
     int identifiant;
     char nom_mission[NOM_MAX];
     float remuneration;
 
     scanf("%d", &identifiant);
+    if (entreprises[identifiant].role == OP)
+    {
     missions[*nbrmissions].identifiant = identifiant;
+    }
+    else
+    {
+    printf("Identifiant incorrect ou inexistant\n");
+    return;
+    }
+    
     scanf("%s", nom_mission);
     strcpy(missions[*nbrmissions].nom_mission, nom_mission);
-    scanf("%f", remuneration);
+    scanf("%f", &remuneration);
     if (remuneration < 0)
     {
-        printf("Remuneration incorrecte");
+        printf("Remuneration incorrecte\n");
         return;
     }
     missions[*nbrmissions].remuneration = remuneration;
     (*nbrmissions)++;
     printf("Mission publiee (%d)\n", *nbrmissions);
-    
+
 }
 
 int main()
@@ -85,6 +90,9 @@ int main()
     char entree[INPUTMAX]; // commande utilisateur
     int nbrentreprises = 0; // mon compteur (indice) pour les inscriptions
     int nbrmissions = 0;  // mon compteur pour les publications
+    //Enfin, les deux tableaux pour stocker ces derniers.
+    t_entreprise entreprises[MAXENTREPRISES];
+    t_mission missions[MISSIONMAX];
 
     do 
     {
@@ -92,11 +100,11 @@ int main()
         scanf("%s", &entree);
         if (strcmp("inscription", entree) == 0)
         {
-            inscription(&nbrentreprises); // C1 - inscription
+            inscription(&nbrentreprises, entreprises); // C1 - inscription
         }
         else if (strcmp("mission", entree) == 0)
         {
-            publication(&nbrmissions); // C2 - publication
+            publication(&nbrmissions, missions, entreprises); // C2 - publication
         }
         
     } while (strcmp("exit", entree) != 0);  // C0 - Exit
