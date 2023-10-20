@@ -2,13 +2,13 @@
 #include <string.h>
 
 enum  {INPUTMAX = 100, NOM_MAX = 30, MAXENTREPRISES = 50, MISSIONMAX = 50}; 
-typedef enum {OP = 1, AG, IN} traitance;
+typedef enum {OP = 1, AG, IN} t_traitance;
 
 // structure d'une entreprise qui va contenir un nom de taille NOM_MAX (30), et un role (OP, AG, IN)
 typedef struct s_entreprise
 {
     char nom[NOM_MAX];
-    traitance role;
+    t_traitance role;
 } t_entreprise;
 
 //structure d'une mission qui va contenir un identifiant saisi par l'utilisateur, un nom pour la mission, et sa remuneration
@@ -23,6 +23,7 @@ typedef struct s_mission
 void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     char entree[INPUTMAX];
     scanf("%s", entree);
+    //on vérifie que ce que vient d'entrer l'utilisateur est équivalent à un des 3 rôles
     if (strcmp("OP", entree) == 0)
     {
         entreprises[*nbrentreprises].role = OP;
@@ -37,18 +38,22 @@ void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     }
     else
     {
-        printf("Role incorrect\n");
+        // si ce n'est pas le cas on affiche la phrase ci-dessous
+        printf("Role incorrect\n");  
         return;
     }
-    scanf("%s", entree);
+    // on prend maintenant le nom qu'à saisi l'utilisateur
+    scanf("%s", entree); 
     for (int i = 0; i < *nbrentreprises; i++)
     {
-        if (strcmp(entree, entreprises[i].nom) == 0 )
+        // on vérifie que ce nom ne figure pas dans notre tableau entreprise en parcourant tous les indices, s'il figure on affiche la phrase ci-dessous
+        if (strcmp(entree, entreprises[i].nom) == 0 ) 
         {
            printf("Nom incorrect\n");
            return;
         }
     }
+    // si tout est bon alors on peut entrer le nom qu'à saisi l'utilisateur dans notre tableau entreprise, puis on incrémente notre indice de 1 pour la saisi suivante.
     strcpy(entreprises[*nbrentreprises].nom, entree);
     (*nbrentreprises)++;
     printf("Inscription realisee (%d)\n", *nbrentreprises);
