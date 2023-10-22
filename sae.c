@@ -20,6 +20,19 @@ typedef struct s_mission
     float remuneration;    
 } t_mission;
 
+void printinfos(t_entreprise entreprises[MAXENTREPRISES], t_mission missions[MISSIONMAX], int i){
+    printf("%-3d %-15s %-15s %.2f\n", i + 1, missions[i].nom_mission, entreprises[missions[i].idOperateur - 1].nom, missions[i].remuneration);
+}
+
+int estAccepte(t_mission missions[MISSIONMAX], int idMission){
+    if (missions[idMission - 1].idAcceptant != -1)
+    {
+        printf("Mission incorrecte\n"); // car la mission a ete acceptee
+        return 1;
+    }
+    return 0;
+}
+
 // C1 - Première fonction pour l'inscription d'une entreprise dans le tableau. Elle prend en fonction le pointeur vers le compteur d'entreprise et le tableau ou les entreprises sont stockés.
 void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     char entree[INPUTMAX];
@@ -69,7 +82,6 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
     scanf("%d", &idOperateur);
     if (idOperateur > *nbrentreprises || idOperateur <= 0 )
     {
-        printf("%d %d %d", idOperateur, *nbrmissions, *nbrentreprises);
         printf("(1) Identifiant incorrect ou inexistant\n");
         return; 
     }
@@ -92,6 +104,7 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
         return;
     }
     missions[*nbrmissions].remuneration = remuneration;
+    missions[*nbrmissions].idAcceptant = -1; // On initialise à -1 pour dire que cette mission est encore non attribuee.
     (*nbrmissions)++;
     printf("Mission publiee (%d)\n", *nbrmissions);
 
@@ -103,10 +116,70 @@ void consultation(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
         printf("Aucune mission disponible\n"); // A MODIFIER URGEMMENT QUAND ON AURA FAIT LACCEPTATION DE MISSIONS ozuefhqsfdôpihqsdfôihqfoîh 
         return;
     }
-    for (size_t i = 0; i < nbrmissions; i++)
+    for (int i = 0; i < nbrmissions; i++)
     {
-        printf("%d %s %s %f (niveau de sous traitance qui arrive tkt)\n", i + 1, missions[i].nom_mission, entreprises[missions[i].idOperateur].nom, missions[i].remuneration);
+        printinfos(entreprises, missions, i);
     }
+    
+}
+
+void detail(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
+    int identifiant;
+    scanf("%d", &identifiant);
+    if (identifiant <= 0 || identifiant > nbrmissions)
+    {
+        printf("Identifiant incorrect");
+        return;
+    }
+    printinfos(entreprises, missions, identifiant - 1); // IL FAUT AUSSI PRINT LES ECHECS FRERE ALLO PRINT LES ECHECS WHOUHOUUU REGARDE ICI C PAS FINI PRINT LES ECHECS QUAND C FAIT
+    
+}
+
+void acceptation(int nbrentreprises, t_entreprise entreprises[MAXENTREPRISES], t_mission missions[MISSIONMAX]){
+    int idEntreprise;
+    int idMission;
+    scanf("%d", &idEntreprise);
+    if (idEntreprise <= 0 || idEntreprise > nbrentreprises || entreprises[idEntreprise - 1].role == OP)
+    {
+        printf("Entreprise incorrecte\n");
+        return;
+    }
+    scanf("%d", &idMission);
+    if (estAccepte(missions, idMission))
+    {
+        printf("Mission incorrecte\n"); // car la mission a ete acceptee
+        return;
+    }
+    missions[idMission - 1].idAcceptant = idEntreprise;
+    printf("Acceptation enregistree\n");
+    
+
+}
+
+void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises, t_mission missions[MISSIONMAX]){
+    int idEntreprise;
+    int idMission;
+    float remuneration;
+
+    scanf("%d", &idEntreprise);
+    if (idEntreprise <= 0 || idEntreprise > nbrentreprises || entreprises[idEntreprise - 1].role != AG)
+    {
+        printf("Entreprise incorrecte\n");
+        return;
+    }
+    scanf("%d", &idMission);
+    if (estAccepte(missions, idMission))
+    {
+        printf("Mission incorrecte\n"); // car la mission a ete acceptee
+        return;
+    }
+    scanf("%f", &remuneration);
+    if (remuneration < 0)
+    {
+        printf("Remuneration incorrecte\n");
+        return;
+    }
+    missions[idMission - 1].idAcceptant = idEntreprise;
     
     
 }
@@ -123,7 +196,7 @@ int main()
     do 
     {
         printf("Entrez votre commande: ");
-        scanf("%s", &entree);
+        scanf("%s", entree);
         if (strcmp("inscription", entree) == 0)
         {
             inscription(&nbrentreprises, entreprises); // C1 - inscription
@@ -136,7 +209,18 @@ int main()
         {
             consultation(nbrmissions, missions, entreprises); // C3 - consultation
         }
-        
+        else if (strcmp("detail", entree) == 0)
+        {
+            detail(nbrmissions, missions, entreprises); // C4 - détails
+        }
+        else if (strcmp("acceptation", entree) == 0)
+        {
+            acceptation(nbrentreprises, entreprises, missions); // C5 - acceptation
+        }
+        else if (strcmp("sous-traitance", entree) == 0)
+        {
+            sousTraitance(entreprises, nbrentreprises, missions); // C6 - sous-traitance
+        }
         
     } while (strcmp("exit", entree) != 0);  // C0 - Exit
 
