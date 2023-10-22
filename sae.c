@@ -11,10 +11,11 @@ typedef struct s_entreprise
     t_traitance role;
 } t_entreprise;
 
-//structure d'une mission qui va contenir un identifiant saisi par l'utilisateur, un nom pour la mission, et sa remuneration
+//structure d'une mission qui va contenir un idOperateur saisi par l'utilisateur, un nom pour la mission, et sa remuneration
 typedef struct s_mission
 {
-    int identifiant;
+    int idOperateur;
+    int idAcceptant; 
     char nom_mission[NOM_MAX];
     float remuneration;    
 } t_mission;
@@ -60,20 +61,26 @@ void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
 }
 
 // C2 - Cette fois ci la seconde fonction pour publier une mission, tout comme la première elle prend en pointeur le compteur de publication de missions et le tableau ou les missions sont stockés.
-void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
-    int identifiant;
+void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES], int *nbrentreprises){
+    int idOperateur;
     char nom_mission[NOM_MAX];
     float remuneration;
 
-    scanf("%d", &identifiant);
-    if (entreprises[identifiant].role == OP)
+    scanf("%d", &idOperateur);
+    if (idOperateur > *nbrentreprises || idOperateur <= 0 )
     {
-    missions[*nbrmissions].identifiant = identifiant;
+        printf("%d %d %d", idOperateur, *nbrmissions, *nbrentreprises);
+        printf("(1) Identifiant incorrect ou inexistant\n");
+        return; 
+    }
+    if(entreprises[idOperateur - 1].role == OP)
+    {
+        missions[*nbrmissions].idOperateur = idOperateur;
     }
     else
     {
-    printf("Identifiant incorrect ou inexistant\n");
-    return;
+        printf("(2) Identifiant incorrect ou inexistant\n");
+        return;
     }
     
     scanf("%s", nom_mission);
@@ -88,6 +95,20 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
     (*nbrmissions)++;
     printf("Mission publiee (%d)\n", *nbrmissions);
 
+}
+
+void consultation(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
+    if (nbrmissions == 0)
+    {
+        printf("Aucune mission disponible\n"); // A MODIFIER URGEMMENT QUAND ON AURA FAIT LACCEPTATION DE MISSIONS ozuefhqsfdôpihqsdfôihqfoîh 
+        return;
+    }
+    for (size_t i = 0; i < nbrmissions; i++)
+    {
+        printf("%d %s %s %f (niveau de sous traitance qui arrive tkt)\n", i + 1, missions[i].nom_mission, entreprises[missions[i].idOperateur].nom, missions[i].remuneration);
+    }
+    
+    
 }
 
 int main()
@@ -109,8 +130,13 @@ int main()
         }
         else if (strcmp("mission", entree) == 0)
         {
-            publication(&nbrmissions, missions, entreprises); // C2 - publication
+            publication(&nbrmissions, missions, entreprises, &nbrentreprises); // C2 - publication
         }
+        else if (strcmp("consultation", entree) == 0)
+        {
+            consultation(nbrmissions, missions, entreprises); // C3 - consultation
+        }
+        
         
     } while (strcmp("exit", entree) != 0);  // C0 - Exit
 
