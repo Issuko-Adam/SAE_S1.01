@@ -20,9 +20,11 @@ typedef struct s_mission
     float remuneration;    
 } t_mission;
 
+// sous-fonction qui nous permet de print les infos d'une mission, nous permettant de pas reecrire les memes lignes dans details et consultation
 void printinfos(t_entreprise entreprises[MAXENTREPRISES], t_mission missions[MISSIONMAX], int i){
     printf("%-3d %-15s %-15s %.2f\n", i + 1, missions[i].nom_mission, entreprises[missions[i].idOperateur - 1].nom, missions[i].remuneration);
-}
+} 
+
 
 int estAccepte(t_mission missions[MISSIONMAX], int idMission){
     if (missions[idMission - 1].idAcceptant != -1)
@@ -33,7 +35,8 @@ int estAccepte(t_mission missions[MISSIONMAX], int idMission){
     return 0;
 }
 
-// C1 - Première fonction pour l'inscription d'une entreprise dans le tableau. Elle prend en fonction le pointeur vers le compteur d'entreprise et le tableau ou les entreprises sont stockés.
+/* C1 - Première fonction pour l'inscription d'une entreprise dans le tableau.
+ Elle prend en fonction le pointeur vers le compteur d'entreprise et le tableau ou les entreprises sont stockés.*/
 void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     char entree[INPUTMAX];
     scanf("%s", entree);
@@ -73,12 +76,13 @@ void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     printf("Inscription realisee (%d)\n", *nbrentreprises);
 }
 
-// C2 - Cette fois ci la seconde fonction pour publier une mission, tout comme la première elle prend en pointeur le compteur de publication de missions et le tableau ou les missions sont stockés.
+/* C2 - Cette fois ci la seconde fonction pour publier une mission, 
+tout comme la première elle prend en pointeur le compteur de publication de missions et le tableau ou les missions sont stockés.*/
 void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES], int *nbrentreprises){
     int idOperateur;
     char nom_mission[NOM_MAX];
     float remuneration;
-
+    // On verifie les conditions d'erreurs, si l'ID entree est bien un operateur, on peut le rentrer dans notre tableau.
     scanf("%d", &idOperateur);
     if (idOperateur > *nbrentreprises || idOperateur <= 0 )
     {
@@ -94,7 +98,6 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
         printf("(2) Identifiant incorrect ou inexistant\n");
         return;
     }
-    
     scanf("%s", nom_mission);
     strcpy(missions[*nbrmissions].nom_mission, nom_mission);
     scanf("%f", &remuneration);
@@ -109,7 +112,7 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
     printf("Mission publiee (%d)\n", *nbrmissions);
 
 }
-
+/*C3 - La fonction consultation qui prend en paramètre */
 void consultation(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
     if (nbrmissions == 0)
     {
