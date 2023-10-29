@@ -18,21 +18,28 @@ typedef struct s_mission
     int idAcceptant; 
     char nom_mission[NOM_MAX];
     float remuneration;    
+    int niveau;
 } t_mission;
 
-// sous-fonction qui nous permet de print les infos d'une mission, nous permettant de pas reecrire les memes lignes dans details et consultation
+// sous-fonction qui nous permet de print les infos d'une mission, nous permettant de ne pas reecrire les memes lignes dans details et consultation
 void printinfos(t_entreprise entreprises[MAXENTREPRISES], t_mission missions[MISSIONMAX], int i){
-    printf("%-3d %-15s %-15s %.2f\n", i + 1, missions[i].nom_mission, entreprises[missions[i].idOperateur - 1].nom, missions[i].remuneration);
+    printf("%-3d %-15s %-15s %.2f (%d)\n", i + 1, missions[i].nom_mission, entreprises[missions[i].idOperateur - 1].nom, missions[i].remuneration, missions[i].niveau);
 } 
 
 
-int estAccepte(t_mission missions[MISSIONMAX], int idMission){
-    if (missions[idMission - 1].idAcceptant != -1)
+int estAccepte(t_mission missions[MISSIONMAX], int idMission){ 
+    return (missions[idMission - 1].idAcceptant != -1); // retourne 0 ou 1 directement 
+}
+
+int missionsIndispo(int nbrmissions, t_mission missions[MISSIONMAX]){
+    for (int i = 0; i < nbrmissions; i++)
     {
-        printf("Mission incorrecte\n"); // car la mission a ete acceptee
-        return 1;
+        if (missions[i].idAcceptant == -1)
+        {
+            return 0;
+        }
     }
-    return 0;
+    return 1;
 }
 
 /* C1 - Première fonction pour l'inscription d'une entreprise dans le tableau.
@@ -108,20 +115,24 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
     }
     missions[*nbrmissions].remuneration = remuneration;
     missions[*nbrmissions].idAcceptant = -1; // On initialise à -1 pour dire que cette mission est encore non attribuee.
+    missions[*nbrmissions].niveau = 0; // On initialise le niveau de sous-traitance a 0 car ce n'est pas encore le cas. 
     (*nbrmissions)++;
     printf("Mission publiee (%d)\n", *nbrmissions);
 
 }
 /*C3 - La fonction consultation qui prend en paramètre */
 void consultation(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
-    if (nbrmissions == 0)
+    if (missionsIndispo(nbrmissions, missions))
     {
         printf("Aucune mission disponible\n"); // A MODIFIER URGEMMENT QUAND ON AURA FAIT LACCEPTATION DE MISSIONS ozuefhqsfdôpihqsdfôihqfoîh 
         return;
     }
     for (int i = 0; i < nbrmissions; i++)
     {
-        printinfos(entreprises, missions, i);
+        if (missions[i].idAcceptant == -1)
+        {
+            printinfos(entreprises, missions, i);
+        }
     }
     
 }
@@ -159,7 +170,7 @@ void acceptation(int nbrentreprises, t_entreprise entreprises[MAXENTREPRISES], t
 
 }
 
-void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises, t_mission missions[MISSIONMAX]){
+void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises, t_mission missions[MISSIONMAX], int *nbrmissions){
     int idEntreprise;
     int idMission;
     float remuneration;
@@ -171,9 +182,9 @@ void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises,
         return;
     }
     scanf("%d", &idMission);
-    if (estAccepte(missions, idMission))
+    if (estAccepte(missions, idMission) || idMission > *nbrmissions || idMission <= 0 || missions[idMission - 1].niveau >= 5)
     {
-        printf("Mission incorrecte\n"); // car la mission a ete acceptee
+        printf("Mission incorrecte\n"); // car la mission a ete acceptee || la mission n'existe pas 
         return;
     }
     scanf("%f", &remuneration);
@@ -183,7 +194,13 @@ void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises,
         return;
     }
     missions[idMission - 1].idAcceptant = idEntreprise;
-    
+    missions[*nbrmissions].idOperateur = idEntreprise;
+    missions[*nbrmissions].idAcceptant = -1;
+    strcpy(missions[*nbrmissions].nom_mission, missions[idMission - 1].nom_mission);
+    missions[*nbrmissions].remuneration = remuneration;
+    missions[*nbrmissions].niveau = missions[idMission - 1].niveau + 1;
+    (*nbrmissions)++;
+    printf("Sous-traitance enregistree (%d)\n", *nbrmissions);
     
 }
 
@@ -222,7 +239,7 @@ int main()
         }
         else if (strcmp("sous-traitance", entree) == 0)
         {
-            sousTraitance(entreprises, nbrentreprises, missions); // C6 - sous-traitance
+            sousTraitance(entreprises, nbrentreprises, missions, &nbrmissions); // C6 - sous-traitance
         }
         
     } while (strcmp("exit", entree) != 0);  // C0 - Exit
