@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+
 enum  {INPUTMAX = 100, NOM_MAX = 30, MAXENTREPRISES = 50, MISSIONMAX = 50}; 
 typedef enum {SUCCES, LNA, SIGNAL, RECEPTEUR} t_code; 
 typedef enum {OP = 1, AG, IN} t_traitance;
@@ -12,10 +13,10 @@ typedef struct s_entreprise
     t_traitance role;
 } t_entreprise;
 
-typedef struct s_rapport
+typedef struct s_rapport 
 {
     t_code code;
-    struct s_rapport *next;
+    int idEntreprise;
 } t_rapport;
 
 //structure d'une mission qui va contenir un idOperateur saisi par l'utilisateur, un nom pour la mission, et sa remuneration
@@ -27,7 +28,9 @@ typedef struct s_mission
     float remuneration;    
     int niveau;
     struct s_mission *suivant;
-    t_rapport *rapport;     
+    t_rapport rapport[MISSIONMAX];
+    int nbrEchec;     
+    int termine;
     
 } t_mission;
 
@@ -50,21 +53,6 @@ int missionsIndispo(int nbrmissions, t_mission missions[MISSIONMAX]){
         }
     }
     return 1;
-}
-
-void AjouterRapport(t_mission *mission, t_rapport *new){
-    t_rapport *temp = mission->rapport;
-    if (!temp)
-    {
-        mission->rapport = new;
-        return;
-    }
-    while (temp->next)
-    {
-        printf("pouet\n");
-        temp = temp->next;
-    }
-    temp->next = new;
 }
 
 /* C1 - Première fonction pour l'inscription d'une entreprise dans le tableau.
@@ -108,14 +96,20 @@ void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     printf("Inscription realisee (%d)\n", *nbrentreprises);
 }
 
-void creationMission(t_mission missions[MISSIONMAX], int *nbrmissions, char nom_mission[NOM_MAX], float remuneration, int IdOperateur, t_rapport *rapport){
+void creationMission(t_mission missions[MISSIONMAX], int *nbrmissions, char nom_mission[NOM_MAX], float remuneration, int IdOperateur, t_rapport rapport[MISSIONMAX], int nbrEchec, int niveau){
     strcpy(missions[*nbrmissions].nom_mission, nom_mission);
     missions[*nbrmissions].remuneration = remuneration;
     missions[*nbrmissions].idAcceptant = -1; // On initialise à -1 pour dire que cette mission est encore non attribuee.
-    missions[*nbrmissions].niveau = 0; // On initialise le niveau de sous-traitance a 0 car ce n'est pas encore le cas. 
+    missions[*nbrmissions].niveau = niveau; // On initialise le niveau de sous-traitance a 0 car ce n'est pas encore le cas. 
     missions[*nbrmissions].suivant = NULL;
     missions[*nbrmissions].idOperateur = IdOperateur;
-    missions[*nbrmissions].rapport = rapport;
+    missions[*nbrmissions].nbrEchec = nbrEchec;
+    missions[*nbrmissions].termine = 0;
+    for (int i = 0; i < nbrEchec; i++)
+    {
+        missions[*nbrmissions].rapport[i].code = rapport[i].code;
+        missions[*nbrmissions].rapport[i].idEntreprise = rapport[i].idEntreprise;
+    }
     (*nbrmissions)++;
 }
 
@@ -140,7 +134,7 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
         printf("Remuneration incorrecte\n");
         return;
     }
-    creationMission(missions, nbrmissions, nom_mission, remuneration, idOperateur, NULL);
+    creationMission(missions, nbrmissions, nom_mission, remuneration, idOperateur, NULL, 0, 0);
     printf("Mission publiee (%d)\n", *nbrmissions);
 }
 
@@ -163,7 +157,6 @@ void consultation(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
 
 void detail(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
     int identifiant;
-    t_rapport *temp;
     scanf("%d", &identifiant);
     if (identifiant <= 0 || identifiant > nbrmissions || missions[identifiant - 1].idAcceptant != -1)
     {
@@ -171,28 +164,36 @@ void detail(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entrep
         return;
     }
     printinfos(entreprises, missions, identifiant - 1); // IL FAUT AUSSI PRINT LES ECHECS FRERE ALLO PRINT LES ECHECS WHOUHOUUU REGARDE ICI C PAS FINI PRINT LES ECHECS QUAND C FAIT
-    temp = missions[identifiant - 1].rapport;
-    while (temp)
+    for (int i = 0; i < missions[identifiant - 1].nbrEchec; i++)
     {
-        if (temp->code == SUCCES)
+        if (missions[identifiant - 1].rapport[i].code == SUCCES)
         {
             printf("Succes\n");
         }
-        else if (temp->code == LNA)
+        else if (missions[identifiant - 1].rapport[i].code == LNA)
         {
             printf("Local non accessible\n");
         }
-        else if (temp->code == SIGNAL)
+        else if (missions[identifiant - 1].rapport[i].code == SIGNAL)
         {
             printf("Pas de signal dans le boitier general\n");
         }
-        else if (temp->code == RECEPTEUR)
+        else if (missions[identifiant - 1].rapport[i].code == RECEPTEUR)
         {
             printf("Recepteur defectueux\n");
-        } 
-        temp = temp->next;
+        }
     }
-    
+}
+
+int aEchoue(t_mission missions[MISSIONMAX], int idMission, int idEntreprise){
+    for (int i = 0; i < missions[idMission - 1].nbrEchec; i++)
+    {
+        if (missions[idMission - 1].rapport[i].idEntreprise == idEntreprise)
+        {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void acceptation(int nbrentreprises, t_entreprise entreprises[MAXENTREPRISES], t_mission missions[MISSIONMAX]){
@@ -200,14 +201,14 @@ void acceptation(int nbrentreprises, t_entreprise entreprises[MAXENTREPRISES], t
     int idMission;
     scanf("%d", &idEntreprise);
     scanf("%d", &idMission);
-    if (idEntreprise <= 0 || idEntreprise > nbrentreprises || entreprises[idEntreprise - 1].role == OP)
-    {
-        printf("Entreprise incorrecte\n");
-        return;
-    }
     if (estAccepte(missions, idMission))
     {
         printf("Mission incorrecte\n"); // car la mission a ete acceptee
+        return;
+    }
+    if (idEntreprise <= 0 || idEntreprise > nbrentreprises || entreprises[idEntreprise - 1].role == OP || aEchoue(missions, idMission, idEntreprise))
+    {
+        printf("Entreprise incorrecte\n");
         return;
     }
     missions[idMission - 1].idAcceptant = idEntreprise;
@@ -240,8 +241,9 @@ void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises,
         return;
     }
     missions[idMission - 1].idAcceptant = idEntreprise;
+    missions[idMission - 1].termine = 1;
     missions[idMission - 1].suivant = &missions[*nbrmissions];
-    creationMission(missions, nbrmissions, missions[idMission - 1].nom_mission, remuneration, idEntreprise, missions[idMission - 1].rapport);
+    creationMission(missions, nbrmissions, missions[idMission - 1].nom_mission, remuneration, idEntreprise, missions[idMission - 1].rapport, missions[idMission - 1].nbrEchec, missions[idMission - 1].niveau + 1);
     printf("Sous-traitance enregistree (%d)\n", *nbrmissions);
     
 }
@@ -249,7 +251,6 @@ void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises,
 void rapport(t_mission missions[MISSIONMAX], int *nbrmissions){
     int IdMission;
     int code;
-    t_rapport rapport;
     float majoration;
 
     scanf("%d", &IdMission);
@@ -265,12 +266,12 @@ void rapport(t_mission missions[MISSIONMAX], int *nbrmissions){
         printf("Code de retour incorrect\n");
         return;
     }
-    rapport.code = code;
-    rapport.next = NULL;
-    AjouterRapport(&(missions[IdMission - 1]), &rapport);
-    printf("%d \n", code);
     if (code)
     {
+        missions[IdMission - 1].rapport[missions[IdMission - 1].nbrEchec].code = code;
+        missions[IdMission - 1].rapport[missions[IdMission - 1].nbrEchec].idEntreprise = missions[IdMission - 1].idAcceptant;
+        missions[IdMission - 1].termine = 1;
+        missions[IdMission - 1].nbrEchec++;
         majoration = missions[IdMission - 1].remuneration;
         if (code == 2)
         {
@@ -278,12 +279,93 @@ void rapport(t_mission missions[MISSIONMAX], int *nbrmissions){
         }
         else if (code == 3)
         {
-            printf("plouf\n");
             majoration += majoration * (4.0 / 100);
         }
-        creationMission(missions, nbrmissions, missions[IdMission - 1].nom_mission, majoration, missions[IdMission - 1].idOperateur, missions[IdMission - 1].rapport);
+        creationMission(missions, nbrmissions, missions[IdMission - 1].nom_mission, majoration, missions[IdMission - 1].idOperateur, missions[IdMission - 1].rapport, missions[IdMission - 1].nbrEchec, missions[IdMission - 1].niveau);
         printf("Rapport enregistre (%d)\n", *nbrmissions);
     }
+
+}
+
+void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
+    int idEntreprise;
+    t_mission nonAttribuees[MISSIONMAX];
+    t_mission attribuees[MISSIONMAX];
+    t_mission terminees[MISSIONMAX];
+    t_mission aRealiser[MISSIONMAX];
+    t_mission realisees[MISSIONMAX];
+    int j = 0;
+    int k = 0;
+    int l = 0;
+    int m = 0;
+    int n = 0;
+
+    scanf("%d", &idEntreprise);
+
+    if (idEntreprise <= 0 || idEntreprise > nbrentreprises)
+    {
+        printf("Entreprise incorrecte\n");
+        return;
+    }
+
+    for (int i = 0; i < nbrmissions; i++)
+    {
+        if (missions[i].idOperateur == idEntreprise)
+        {
+            if (missions[i].idAcceptant == -1)
+            {
+                nonAttribuees[j] = missions[i];
+                j++;
+            }
+            else if (missions[i].termine == 1)
+            {
+                terminees[k] = missions[i];
+                k++;
+            }
+            else
+            {
+                attribuees[l] = missions[i];
+                l++;
+            }
+        }
+        else if (missions[i].idAcceptant == idEntreprise)
+        {
+            if (missions[i].termine == 0)
+            {
+                aRealiser[m] = missions[i];
+                m++;
+            }
+            else
+            {
+                realisees[n] = missions[i];
+                n++;
+            }
+        }
+    }
+    for (int i = 0; i < j; i++)
+    {
+        printf("* non attribuees\n%-3d %-15s %-15s %.2f (%d)\n", nonAttribuees[i].idOperateur, nonAttribuees[i].nom_mission, entreprises[nonAttribuees[i].idOperateur - 1].nom, nonAttribuees[i].remuneration, nonAttribuees[i].niveau);
+    }
+    for (int i = 0; i < k; i++)
+    {
+        printf("* attribuees\n%-3d %-15s %-15s %.2f (%d)\n", terminees[i].idOperateur, terminees[i].nom_mission, entreprises[terminees[i].idOperateur - 1].nom, terminees[i].remuneration, terminees[i].niveau);
+    }
+    for (int i = 0; i < l; i++)
+    {
+        printf("* terminees\n%-3d %-15s %-15s %.2f (%d)\n", attribuees[i].idOperateur, attribuees[i].nom_mission, entreprises[attribuees[i].idOperateur - 1].nom, attribuees[i].remuneration, attribuees[i].niveau);
+    }
+    for (int i = 0; i < m; i++)
+    {
+        printf("* a realiser\n%-3d %-15s %-15s %.2f (%d)\n", aRealiser[i].idOperateur, aRealiser[i].nom_mission, entreprises[aRealiser[i].idOperateur - 1].nom, aRealiser[i].remuneration, aRealiser[i].niveau);
+    }
+    for (int i = 0; i < n; i++)
+    {
+        printf("* terminees\n%-3d %-15s %-15s %.2f (%d)\n", realisees[i].idOperateur, realisees[i].nom_mission, entreprises[realisees[i].idOperateur - 1].nom, realisees[i].remuneration, realisees[i].niveau);
+    }
+    
+    
+    
+    
 
 }
 
@@ -326,6 +408,10 @@ int main()
         else if (strcmp("rapport", entree) == 0)
         {
             rapport(missions, &nbrmissions); // C7 - rapport
+        }
+        else if (strcmp("recapitulatif", entree) == 0)
+        {
+            recapitulatif(nbrentreprises, nbrmissions, missions, entreprises); // C8 - recapitulatif !!!
         }
         
         
