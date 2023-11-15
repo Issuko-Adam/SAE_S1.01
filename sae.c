@@ -362,11 +362,6 @@ void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSI
     {
         printf("* terminees\n%-3d %-15s %-15s %.2f (%d)\n", realisees[i].idOperateur, realisees[i].nom_mission, entreprises[realisees[i].idOperateur - 1].nom, realisees[i].remuneration, realisees[i].niveau);
     }
-    
-    
-    
-    
-
 }
 
 int main()
