@@ -13,6 +13,7 @@ typedef struct s_entreprise
     t_traitance role;
 } t_entreprise;
 
+// structure pour nous permettre de faire la C7 (rapport d'une mission)
 typedef struct s_rapport 
 {
     t_code code;
@@ -22,16 +23,16 @@ typedef struct s_rapport
 //structure d'une mission qui va contenir un idOperateur saisi par l'utilisateur, un nom pour la mission, et sa remuneration
 typedef struct s_mission
 {
-    int idOperateur;
-    int idAcceptant; 
-    char nom_mission[NOM_MAX];
-    float remuneration;    
-    int niveau;
-    struct s_mission *suivant;
-    t_rapport rapport[MISSIONMAX];
-    int nbrEchec;     
-    int termine;
-    int identifiant;
+    int idOperateur; // l'id de l'operateur de la mission
+    int idAcceptant; // l'id de l'entreprise qui a accepté la mission
+    char nom_mission[NOM_MAX]; // son nom
+    float remuneration; // la rémunération d'une mission
+    int niveau; // les niveaux de sous-traitance
+    struct s_mission *suivant; // pour voir si la mission actuelle a une mission suivante (sous-traitance)
+    t_rapport rapport[MISSIONMAX]; // tableau de rapports qui va contenir le code de rapport et l'IdEntreprise en question
+    int nbrEchec; // le nombre d'échecs qu'a subi une mission     
+    int termine; // flag terminé à 0 ou 1 pour savoir si notre mission est terminée
+    int identifiant; // identifiant de la mission
     
 } t_mission;
 
@@ -40,11 +41,11 @@ void printinfos(t_entreprise entreprises[MAXENTREPRISES], t_mission missions[MIS
     printf("%-3d %-15s %-15s %.2f (%d)\n", i + 1, missions[i].nom_mission, entreprises[missions[i].idOperateur - 1].nom, missions[i].remuneration, missions[i].niveau);
 } 
 
-
+// sous-fonction qui nous permet de vérifier si une mission est accepté et ne pas refaire le même check à chaque fonction
 int estAccepte(t_mission missions[MISSIONMAX], int idMission){ 
     return (missions[idMission - 1].idAcceptant != -1); // retourne 0 ou 1 directement 
 }
-
+// sous-fonction qui nous permet si aucune mission est disponible dans C3 (consultation) 
 int missionsIndispo(int nbrmissions, t_mission missions[MISSIONMAX]){
     for (int i = 0; i < nbrmissions; i++)
     {
@@ -97,6 +98,8 @@ void inscription(int *nbrentreprises, t_entreprise entreprises[MAXENTREPRISES]){
     printf("Inscription realisee (%d)\n", *nbrentreprises);
 }
 
+/* fonction tres pratique qui va nous créer l'entièreté de la mission et mettre toutes les valeurs à ce qu'on souhaite
+notamment utilisé pour la publication d'une mission, quand on fait une sous-traitance ou encore un rapport*/
 void creationMission(t_mission missions[MISSIONMAX], int *nbrmissions, char nom_mission[NOM_MAX], float remuneration, int IdOperateur, t_rapport rapport[MISSIONMAX], int nbrEchec, int niveau){
     strcpy(missions[*nbrmissions].nom_mission, nom_mission);
     missions[*nbrmissions].remuneration = remuneration;
@@ -107,6 +110,7 @@ void creationMission(t_mission missions[MISSIONMAX], int *nbrmissions, char nom_
     missions[*nbrmissions].nbrEchec = nbrEchec;
     missions[*nbrmissions].termine = 0;
     missions[*nbrmissions].identifiant = *nbrmissions + 1;
+    // on entre tous les échecs précédents si on recrée une mission
     for (int i = 0; i < nbrEchec; i++)
     {
         missions[*nbrmissions].rapport[i].code = rapport[i].code;
@@ -140,7 +144,7 @@ void publication(int *nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
     printf("Mission publiee (%d)\n", *nbrmissions);
 }
 
-/*C3 - La fonction consultation qui prend en paramètre */
+/*C3 - La fonction consultation qui va afficher toutes les missions disponibles actuellement */
 void consultation(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
     if (missionsIndispo(nbrmissions, missions))
     {
@@ -157,14 +161,17 @@ void consultation(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise 
     
 }
 
+/*La fonction detail qui va nous afficher toutes les infos d'une mission ainsi que tout ses échecs précédents*/
 void detail(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
     int identifiant;
     scanf("%d", &identifiant);
+    // on check d'abord nos conditions d'erreurs
     if (identifiant <= 0 || identifiant > nbrmissions || missions[identifiant - 1].idAcceptant != -1)
     {
         printf("Identifiant incorrect\n");
         return;
     }
+    // et on affiche les infos de la mission ainsi que ses rapports
     printinfos(entreprises, missions, identifiant - 1);
     for (int i = missions[identifiant - 1].nbrEchec; i > 0; i--)
     {
@@ -186,7 +193,7 @@ void detail(int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entrep
         }
     }
 }
-
+/*Fonction nous permettant de check qu'une entreprise qui a déjà échoué la mission x ne pourras pas la reprendre plus tard*/
 int aEchoue(t_mission missions[MISSIONMAX], int idMission, int idEntreprise){
     for (int i = 0; i < missions[idMission - 1].nbrEchec; i++)
     {
@@ -197,7 +204,7 @@ int aEchoue(t_mission missions[MISSIONMAX], int idMission, int idEntreprise){
     }
     return 0;
 }
-
+/*Fonction permettant d'accepter une mission par une entreprise != OP*/
 void acceptation(int nbrentreprises, t_entreprise entreprises[MAXENTREPRISES], t_mission missions[MISSIONMAX]){
     int idEntreprise;
     int idMission;
@@ -218,7 +225,9 @@ void acceptation(int nbrentreprises, t_entreprise entreprises[MAXENTREPRISES], t
     
 
 }
-
+/*La fonction qui va nous permettre de faire sous-traiter une mission en vérifiant d'abord les cas d'erreur,
+puis créer une nouvelle mission avec la rémunération choisi et de modifier la valeur de la mission.suivant à l'adresse 
+de la prochaine mission. Ce qui va nous être utile pour vérifier plus tard si on est bien à la fin de la chaine de sous-traitance*/
 void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises, t_mission missions[MISSIONMAX], int *nbrmissions){
     int idEntreprise;
     int idMission;
@@ -245,11 +254,13 @@ void sousTraitance(t_entreprise entreprises[MAXENTREPRISES], int nbrentreprises,
     missions[idMission - 1].idAcceptant = idEntreprise;
     /*mission.suivant est égal à la mission à l'indice qu'on vient de créer*/
     missions[idMission - 1].suivant = &missions[*nbrmissions]; 
+    // on crée une nouvelle mission comme elle s'est faite sous-traitée
     creationMission(missions, nbrmissions, missions[idMission - 1].nom_mission, remuneration, idEntreprise, missions[idMission - 1].rapport, missions[idMission - 1].nbrEchec, missions[idMission - 1].niveau + 1);
     printf("Sous-traitance enregistree (%d)\n", *nbrmissions);
     
 }
-
+/*La fonction pour faire un rapport sur une mission en cours, ce qui va créer une nouvelle mission avec la majoration correspondant
+au code de l'échec*/
 void rapport(t_mission missions[MISSIONMAX], int *nbrmissions){
     int IdMission;
     int code;
@@ -268,7 +279,8 @@ void rapport(t_mission missions[MISSIONMAX], int *nbrmissions){
         printf("Code de retour incorrect\n");
         return;
     }
-    
+    /*si nos conditions d'erreurs sont checkés et qu'on va faire un rapport sur notre mission actuelle
+    on peut mettre mission.termine sur 1 pour dire que notre mission actuelle est terminée*/
     missions[IdMission - 1].termine = 1;
     if (code)
     {
@@ -294,7 +306,8 @@ void rapport(t_mission missions[MISSIONMAX], int *nbrmissions){
     }
     
 }
-
+/*la fonction qui nous permet de voir si la mission actuelle est terminée en vérifiant s'il n'y a pas une autre
+mission derrière celle-ci, donc si temp est NULL c'est qu'il n'y a plus de mission après */
 int estTermine(t_mission mission){
     t_mission *temp = mission.suivant;
     if (!temp)
@@ -308,13 +321,19 @@ int estTermine(t_mission mission){
     return temp->termine;
 }
 
+/*La dernière commande de ce projet, on cherche à l'idEntreprise donné toutes ses missions,
+on va ensuite effectuer plusieurs boucle for pour check à chaque fois le statut de toutes ses missions
+pour enfin les rentrer dans les tableaux correspondants à leurs statuts.
+à la fin on print dans l'ordre tout ce que contiennent les tableaux*/
 void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSIONMAX], t_entreprise entreprises[MAXENTREPRISES]){
     int idEntreprise;
+    // nos 5 tableaux différents correspondants aux statuts des missions
     t_mission nonAttribuees[MISSIONMAX];
     t_mission attribuees[MISSIONMAX];
     t_mission terminees[MISSIONMAX];
     t_mission aRealiser[MISSIONMAX];
     t_mission realisees[MISSIONMAX];
+    // les compteurs correspondants aux tableaux qu'on incrémente à chaque fois qu'on entre une mission dans le tableau
     int j = 0;
     int k = 0;
     int l = 0;
@@ -322,40 +341,47 @@ void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSI
     int n = 0;
 
     scanf("%d", &idEntreprise);
-
+    // On check nos conditions d'erreur
     if (idEntreprise <= 0 || idEntreprise > nbrentreprises)
     {
         printf("Entreprise incorrecte\n");
         return;
     }
-
+    // Notre première boucle pour entrer les missions correspondantes dans les tableaux.
     for (int i = 0; i < nbrmissions; i++)
     {
+        // Premièrement les missions qui sont publiées par l'entreprise
         if (missions[i].idOperateur == idEntreprise)
         {
+            // Mais pas encore attribuées
             if (missions[i].idAcceptant == -1)
             {
                 nonAttribuees[j] = missions[i];
                 j++;
             }
+            // Et qui sont terminées
             else if (estTermine(missions[i]))
             {
                 terminees[k] = missions[i];
                 k++;
             }
+            // Mais qui sont attribuées
             else
             {
                 attribuees[l] = missions[i];
                 l++;
             }
         }
+        // Et enfin les missions qui sont acceptés par l'entreprise
         else if (missions[i].idAcceptant == idEntreprise && !missions[i].suivant)
-        {
+        {   
+            // mais qui sont à réaliser
             if (missions[i].termine == 0)
             {
                 aRealiser[m] = missions[i];
                 m++;
             }
+            // et qui sont réalisées
             else
             {
                 realisees[n] = missions[i];
@@ -363,6 +389,8 @@ void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSI
             }
         }
     }
+    /*Si le compteur J est non nul pour le tableau des missions non attribuées alors il affiche l'entièreté des missions
+    avec le padding donné*/
     if (j)
     {
         printf("* non attribuees\n");
@@ -371,6 +399,7 @@ void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSI
             printf("%-3d %-15s %-15s %.2f (%d)\n", nonAttribuees[i].identifiant, nonAttribuees[i].nom_mission, entreprises[nonAttribuees[i].idOperateur - 1].nom, nonAttribuees[i].remuneration, nonAttribuees[i].niveau);
         }
     }
+    // Pareil cette fois-ci mais pour le compteur "l" qui correspond aux missions attribuées
     if (l)
     {
         printf("* attribuees\n");
@@ -379,6 +408,7 @@ void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSI
             printf("%-3d %-15s %-15s %.2f (%d)\n", attribuees[i].identifiant, attribuees[i].nom_mission, entreprises[attribuees[i].idOperateur - 1].nom, attribuees[i].remuneration, attribuees[i].niveau);
         }
     }
+    // Pareil avec le compteur "k" pour les missions terminées
     if (k)
     {
         printf("* terminees\n");
@@ -387,6 +417,7 @@ void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSI
             printf("%-3d %-15s %-15s %.2f (%d)\n", terminees[i].identifiant, terminees[i].nom_mission, entreprises[terminees[i].idOperateur - 1].nom, terminees[i].remuneration, terminees[i].niveau);
         }
     }
+    // Le compteur "m" pour les missions à réaliser
     if (m)
     {
         printf("* a realiser\n");
@@ -395,6 +426,7 @@ void recapitulatif(int nbrentreprises, int nbrmissions, t_mission missions[MISSI
             printf("%-3d %-15s %-15s %.2f (%d)\n", aRealiser[i].identifiant, aRealiser[i].nom_mission, entreprises[aRealiser[i].idOperateur - 1].nom, aRealiser[i].remuneration, aRealiser[i].niveau);
         }
     }
+    // Et enfin le dernier compteur n pour afficher l'entièreté du tableau de missions qui sont réalisées
     if (n)
     {
         printf("* realisees\n");
